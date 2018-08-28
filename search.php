@@ -3,7 +3,7 @@
 require 'config.php';
 
 
-require '../../includes/autoload.php';
+require 'vendor/autoload.php';
         
 use Elasticsearch\ClientBuilder;
 
