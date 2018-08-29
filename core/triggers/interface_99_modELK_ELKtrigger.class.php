@@ -89,32 +89,31 @@ class InterfaceELKtrigger
      */
     public function run_trigger($action, $object, $user, $langs, $conf)
     {
-        // Put here code you want to execute when a Dolibarr business events occurs.
-        // Data and type of action are stored into $object and $action
-        // Users
 
-	if ($action == 'USER_LOGIN' || empty($object->element) || empty($object->table_element) ) {
-		return 0;
-	}	
-        
-        $client = ClientBuilder::create()->build();
-        
-        $params = [
+        if ($action == 'USER_LOGIN' || empty($object->element) || empty($object->table_element) ) {
+            return 0;
+        }
+
+        $builder = ClientBuilder::create()->setSSLVerification(false);
+        if(!empty($conf->global->ELK_HOSTS)) $builder->setHosts(explode(',', $conf->global->ELK_HOSTS));
+
+        $client = $builder->build();
+
+	    $params = [
             'index' => $object->table_element,
             'type' => $object->element,
             'id' => $object->id,
             'body' => (array) $object
         ];
 
-	unset($params['body']['db']);
-	foreach($params['body'] as $k=>$v) {
-		if($k[0]=='*') unset($params['body'][$k]);
-	}
-	
-// var_dump($params);        
-        // Document will be indexed to my_index/my_type/my_id
+        unset($params['body']['db']);
+        foreach($params['body'] as $k=>$v) {
+            if($k[0]=='*') unset($params['body'][$k]);
+        }
+
         $response = $client->index($params);
-/*
+
+	/*
 	unset($params['body']);
 	$response = $client->get($params);
 var_dump($response);exit;
