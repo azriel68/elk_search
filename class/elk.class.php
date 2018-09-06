@@ -1,293 +1,163 @@
 <?php
 
-if (!class_exists('TObjetStd'))
+require_once __DIR__ .'/../lib/PHP-SQL-Parser/vendor/autoload.php';
+
+use \PHPSQLParser\PHPSQLParser as PHPSQLParser;
+use \PHPSQLParser\PHPSQLCreator as PHPSQLCreator;
+
+class TELKParser
 {
-	/**
-	 * Needed if $form->showLinkedObjectBlock() is call
-	 */
-	define('INC_FROM_DOLIBARR', true);
-	require_once dirname(__FILE__).'/../config.php';
-}
+    var $parser = null;
+    var $query_init = '';
+    var $query_builed = '';
+    var $tablename = '';
+    var $table1 = '';
+    var $conditions=null;
+    var $fields=null;
+    var $sorts=null;
 
+	public function __construct($query)
+	{
 
-class TELK extends TObjetStd
-{
-	/**
-	 * Draft status
-	 */
-	const STATUS_DRAFT = 0;
-	/**
-	 * Validated status
-	 */
-	const STATUS_VALIDATED = 1;
-	/**
-	 * Refused status
-	 */
-	const STATUS_REFUSED = 3;
-	/**
-	 * Accepted status
-	 */
-	const STATUS_ACCEPTED = 4;
-	
-	public static $TStatus = array(
-		self::STATUS_DRAFT => 'Draft'
-		,self::STATUS_VALIDATED => 'Validate'
-		,self::STATUS_REFUSED => 'Refuse'
-		,self::STATUS_ACCEPTED => 'Accept'
-	);
+        $this->query_init = $query;
+        $this->parser = new PHPSQLParser($query, true);
 
+        if($this->ifQuery() && !empty($this->parser->parsed['FROM'])) {
+            $this->table1 = $this->parser->parsed['FROM'][0]['table'];
+            $this->tablename = preg_replace('/^'.MAIN_DB_PREFIX.'/i','', $this->table1);
+            $this->revokeAlias(); //TODO useless ?
+            $this->populateConditionQuery();
+            $this->populateSelectFieldQuery();
 
-	public function __construct()
-	{
-		global $conf,$langs,$db;
-		
-		$this->set_table(MAIN_DB_PREFIX.'elk');
-		
-		$this->add_champs('ref', array('type' => 'string', 'length' => 80, 'index' => true));
-		$this->add_champs('label', array('type' => 'string'));
-		$this->add_champs('status', array('type' => 'integer'));
-		
-		$this->add_champs('entity,fk_user_author', array('type' => 'integer', 'index' => true));
-//		$this->add_champs('date_other,date_other_2', array('type' => 'date'));
-//		$this->add_champs('note', array('type' => 'text'));
-		
-		$this->_init_vars();
-		$this->start();
-		
-//		$this->setChild('TELKChild','fk_elk');
-		
-		if (!class_exists('GenericObject')) require_once DOL_DOCUMENT_ROOT.'/core/class/genericobject.class.php';
-		$this->generic = new GenericObject($db);
-		$this->generic->table_element = $this->get_table();
-		$this->generic->element = 'elk';
-		
-		$this->status = self::STATUS_DRAFT;
-		$this->entity = $conf->entity;
-	}
+            $this->buildQuery();
+echo '<br />'.$this->query_builed .'<br><br>';
+            print_r($this->parser->parsed);
 
-	public function save(&$PDOdb, $addprov=false)
-	{
-		global $user;
-		
-		if (!$this->getId()) $this->fk_user_author = $user->id;
-		
-		$res = parent::save($PDOdb);
-		
-		if ($addprov || !empty($this->is_clone))
-		{
-			$this->ref = '(PROV'.$this->getId().')';
-			
-			if (!empty($this->is_clone)) $this->status = self::STATUS_DRAFT;
-			
-			$wc = $this->withChild;
-			$this->withChild = false;
-			$res = parent::save($PDOdb);
-			$this->withChild = $wc;
-		}
-		
-		return $res;
-	}
-	
-	public function load(&$PDOdb, $id, $loadChild = true)
-	{
-		global $db;
-		
-		$res = parent::load($PDOdb, $id, $loadChild);
-		
-		$this->generic->id = $this->getId();
-		$this->generic->ref = $this->ref;
-		
-		if ($loadChild) $this->fetchObjectLinked();
-		
-		return $res;
-	}
-	
-	public function delete(&$PDOdb)
-	{
-		$this->generic->deleteObjectLinked();
-		
-		parent::delete($PDOdb);
-	}
-	
-	public function fetchObjectLinked()
-	{
-		$this->generic->fetchObjectLinked($this->getId());
-	}
+            exit($this->tablename);
+        }
 
-	public function setDraft(&$PDOdb)
-	{
-		if ($this->status == self::STATUS_VALIDATED)
-		{
-			$this->status = self::STATUS_DRAFT;
-			$this->withChild = false;
-			
-			return parent::save($PDOdb);
-		}
-		
-		return 0;
-	}
-	
-	public function setValid(&$PDOdb)
-	{
-//		global $user;
-		
-		$this->ref = $this->getNumero();
-		$this->status = self::STATUS_VALIDATED;
-		
-		return parent::save($PDOdb);
-	}
-	
-	public function getNumero()
-	{
-		if (preg_match('/^[\(]?PROV/i', $this->ref) || empty($this->ref))
-		{
-			return $this->getNextNumero();
-		}
-		
-		return $this->ref;
-	}
-	
-	private function getNextNumero()
-	{
-		global $db,$conf;
-		
-		require_once DOL_DOCUMENT_ROOT.'/core/lib/functions2.lib.php';
-		
-		$mask = !empty($conf->global->MYMODULE_REF_MASK) ? $conf->global->MYMODULE_REF_MASK : 'MM{yy}{mm}-{0000}';
-		$numero = get_next_value($db, $mask, 'elk', 'ref');
-		
-		return $numero;
-	}
-	
-	public function setRefused(&$PDOdb)
-	{
-//		global $user;
-		
-		$this->status = self::STATUS_REFUSED;
-		$this->withChild = false;
-		
-		return parent::save($PDOdb);
-	}
-	
-	public function setAccepted(&$PDOdb)
-	{
-//		global $user;
-		
-		$this->status = self::STATUS_ACCEPTED;
-		$this->withChild = false;
-		
-		return parent::save($PDOdb);
-	}
-	
-	public function getNomUrl($withpicto=0, $get_params='')
-	{
-		global $langs;
-
-        $result='';
-        $label = '<u>' . $langs->trans("ShowELK") . '</u>';
-        if (! empty($this->ref)) $label.= '<br><b>'.$langs->trans('Ref').':</b> '.$this->ref;
-        
-        $linkclose = '" title="'.dol_escape_htmltag($label, 1).'" class="classfortooltip">';
-        $link = '<a href="'.dol_buildpath('/elk/card.php', 1).'?id='.$this->getId(). $get_params .$linkclose;
-       
-        $linkend='</a>';
-
-        $picto='generic';
-		
-        if ($withpicto) $result.=($link.img_object($label, $picto, 'class="classfortooltip"').$linkend);
-        if ($withpicto && $withpicto != 2) $result.=' ';
-		
-        $result.=$link.$this->ref.$linkend;
-		
-        return $result;
-	}
-	
-	public static function getStaticNomUrl($id, $withpicto=0)
-	{
-		global $PDOdb;
-		
-		if (empty($PDOdb)) $PDOdb = new TPDOdb;
-		
-		$object = new TELK;
-		$object->load($PDOdb, $id, false);
-		
-		return $object->getNomUrl($withpicto);
-	}
-	
-	public function getLibStatut($mode=0)
-    {
-        return self::LibStatut($this->status, $mode);
     }
-	
-	public static function LibStatut($status, $mode)
-	{
-		global $langs;
-		$langs->load('elk@elk');
 
-		if ($status==self::STATUS_DRAFT) { $statustrans='statut0'; $keytrans='ELKStatusDraft'; $shortkeytrans='Draft'; }
-		if ($status==self::STATUS_VALIDATED) { $statustrans='statut1'; $keytrans='ELKStatusValidated'; $shortkeytrans='Validate'; }
-		if ($status==self::STATUS_REFUSED) { $statustrans='statut5'; $keytrans='ELKStatusRefused'; $shortkeytrans='Refused'; }
-		if ($status==self::STATUS_ACCEPTED) { $statustrans='statut6'; $keytrans='ELKStatusAccepted'; $shortkeytrans='Accepted'; }
+    public function populateConditionQuery() {
+        $this->conditions = [];
 
-		
-		if ($mode == 0) return img_picto($langs->trans($keytrans), $statustrans);
-		elseif ($mode == 1) return img_picto($langs->trans($keytrans), $statustrans).' '.$langs->trans($keytrans);
-		elseif ($mode == 2) return $langs->trans($keytrans).' '.img_picto($langs->trans($keytrans), $statustrans);
-		elseif ($mode == 3) return img_picto($langs->trans($keytrans), $statustrans).' '.$langs->trans($shortkeytrans);
-		elseif ($mode == 4) return $langs->trans($shortkeytrans).' '.img_picto($langs->trans($keytrans), $statustrans);
-	}
-	
+        if(!empty($this->parser->parsed['WHERE'])) {
+            foreach ($this->parser->parsed['WHERE'] as $row) {
+                if (!empty($row['no_quotes']['parts']) && count($row['no_quotes']['parts']) == 2) {
+                    $this->conditions[]=$row['no_quotes']['parts'][1];
+                } else if (!empty($row['no_quotes']['parts']) && count($row['no_quotes']['parts']) == 1) {
+                    $this->conditions[]=$row['no_quotes']['parts'][0];
+                }
+            }
+        }
+    }
+
+    public function populateSelectFieldQuery() {
+        $this->fields = [];
+
+        if(!empty($this->parser->parsed['SELECT'])) {
+            foreach ($this->parser->parsed['SELECT'] as $row) {
+                if (!empty($row['no_quotes']['parts']) && count($row['no_quotes']['parts']) == 2) {
+                    $this->fields[]=$row['no_quotes']['parts'][1];
+                } else if (!empty($row['no_quotes']['parts']) && count($row['no_quotes']['parts']) == 1) {
+                    $this->fields[]=$row['no_quotes']['parts'][0];
+                }
+            }
+        }
+
+    }
+
+
+    public function buildQuery() {
+
+        $builder = new PHPSQLCreator($this->parser->parsed);
+        $this->query_builed = $builder->created;
+
+
+    }
+    private function changeAlias(&$row) {
+
+	    if(($row['expr_type']=='colref' || $row['expr_type']=='table') /*&& $row['join_type']!='CROSS'*/) {
+
+            if (!empty($row['no_quotes']['parts']) && count($row['no_quotes']['parts']) == 2) {
+                $row['no_quotes']['parts'][0] = $this->TAlias[$row['no_quotes']['parts'][0]];
+            } else if (!empty($row['no_quotes']['parts']) && count($row['no_quotes']['parts']) == 1) {
+                $row['no_quotes']['parts'][1] = $row['no_quotes']['parts'][0];
+                $row['no_quotes']['parts'][0] = $this->tablename;
+            }
+
+            if (empty($row['no_quotes']['delim'])) $row['no_quotes']['delim'] = '.';
+
+            $row['base_expr'] = $row['no_quotes']['parts'][0] . $row['no_quotes']['delim'] . $row['no_quotes']['parts'][1];
+        }
+
+        if(!empty($row['sub_tree'])) {
+            foreach($row['sub_tree'] as &$subtree) {
+                $this->changeAlias($subtree);
+
+            }
+
+        }
+
+    }
+    private function revokeAlias() {
+        echo $this->query_init.'<br>';
+
+        $this->TAlias = array();
+        foreach($this->parser->parsed['FROM'] as $k=>&$rowFrom) {
+            $table = $rowFrom['table'];
+            $table_crypt = preg_replace('/^'.MAIN_DB_PREFIX.'/i','',$table); /* 'al'.$k; */
+
+            //if(empty($rowFrom['alias']['name'])) $rowFrom['alias']['name'] = $table;
+            $this->TAlias[$rowFrom['alias']['name']] = $table_crypt;
+            $rowFrom['alias']['name'] = $table_crypt;
+        }
+
+        foreach($this->parser->parsed['FROM'] as &$rowFrom) {
+            $this->changeAlias($rowFrom);
+            if(!empty($rowFrom['ref_type']) && $rowFrom['ref_type'] == 'ON') {
+                foreach ($rowFrom['ref_clause'] as &$clause) {
+                    $this->changeAlias($clause);
+                }
+
+
+            }
+
+        }
+
+        if(!empty($this->parser->parsed['SELECT'])) {
+            foreach ($this->parser->parsed['SELECT'] as &$rowSelect) {
+                $this->changeAlias($rowSelect);
+
+            }
+        }
+        if(!empty($this->parser->parsed['WHERE'])) {
+            foreach ($this->parser->parsed['WHERE'] as &$rowWhere) {
+                $this->changeAlias($rowWhere);
+            }
+        }
+        if(!empty($this->parser->parsed['ORDER'])) {
+            foreach ($this->parser->parsed['ORDER'] as &$rowOrder) {
+                $this->changeAlias($rowOrder);
+            }
+        }
+        if(!empty($this->parser->parsed['GROUP'])) {
+            foreach ($this->parser->parsed['GROUP'] as &$rowOrder) {
+                $this->changeAlias($rowOrder);
+            }
+        }
+    }
+
+    public function ifQuery() {
+
+	    return (!empty($this->parser->parsed['SELECT']));
+    }
+
+    public function getResult() {
+
+	    return array();
+
+    }
+
+
 }
-
-/**
- * Class needed if link exists with dolibarr object from element_element and call from $form->showLinkedObjectBlock()
- */
-class Elk extends TELK
-{
-	private $PDOdb;
-	
-	public function __construct()
-	{
-		parent::__construct();
-		
-		$this->PDOdb = new TPDOdb;
-	}
-	
-	function fetch($id)
-	{
-		return $this->load($this->PDOdb, $id);
-	}
-}
-
-/*
-class TELKChild extends TObjetStd
-{
-	public function __construct()
-	{
-		$this->set_table(MAIN_DB_PREFIX.'elk_child');
-		
-		$this->add_champs('fk_elk', array('type' => 'integer', 'index' => true));
-//		$this->add_champs('fk_user', array('type' => 'integer', 'index' => true)); // link n_n with user for example
-		
-		$this->_init_vars();
-		$this->start();
-		
-		$this->user = null;
-	}
-	
-	public function load(&$PDOdb, $id, $loadChild=true)
-	{
-		$res = parent::load($PDOdb, $id, $loadChild);
-		
-		return $res;
-	}
-	
-	public function loadBy(&$PDOdb, $value, $field, $annexe = false)
-	{
-		$res = parent::loadBy($PDOdb, $value, $field, $annexe);
-		
-		return $res;
-	}
-	
-}
-*/
