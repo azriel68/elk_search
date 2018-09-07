@@ -94,24 +94,10 @@ class InterfaceELKtrigger
             return 0;
         }
 
-        $builder = ClientBuilder::create()->setSSLVerification(false);
-        if(!empty($conf->global->ELK_HOSTS)) $builder->setHosts(explode(',', $conf->global->ELK_HOSTS));
-
-        $client = $builder->build();
-
-	    $params = [
-            'index' => $object->table_element,
-            'type' => $object->element,
-            'id' => $object->id,
-            'body' => (array) $object
-        ];
-
-        unset($params['body']['db']);
-        foreach($params['body'] as $k=>$v) {
-            if($k[0]=='*') unset($params['body'][$k]);
+        if(preg_match('/UPDATE/',$action) || preg_match('/INSERT/',$action) || preg_match('/MODIFY/',$action) ) {
+            ELKParser::storeObject($object);
         }
 
-        $response = $client->index($params);
 
 	/*
 	unset($params['body']);

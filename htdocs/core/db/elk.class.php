@@ -262,16 +262,18 @@ class DoliDBElk extends \DoliDB
         if (preg_match("/^COMMIT/i",$query) && ! preg_match("/^ROLLBACK/i",$query))
         if (! in_array($query,array('BEGIN','COMMIT','ROLLBACK'))) dol_syslog('sql='.$query, LOG_DEBUG);
 
-        $elk=new TELKParser($query);
-
         if (! $this->database_name)
         {
             // Ordre SQL ne necessitant pas de connexion a une base (exemple: CREATE DATABASE)
             $ret = $this->db->query($query);
         }
-        else
-        {
-            $ret = $this->db->query($query);
+        else {
+            $elk = new ELKParser();
+            if ($elk->getResultFromElk($query)) {
+
+            } else {
+                $ret = $this->db->query($query);
+            }
         }
 
         if (! preg_match("/^COMMIT/i",$query) && ! preg_match("/^ROLLBACK/i",$query))
