@@ -8,6 +8,35 @@ use \PHPSQLParser\PHPSQLCreator as PHPSQLCreator;
 require __DIR__.'/../vendor/autoload.php';
 
 use Elasticsearch\ClientBuilder;
+use Santik\SqlElasticSearchQueryConverter\SqlElasticSearchQueryConverter;
+
+class ELKResult {
+
+    private $results = null;
+
+    function __construct($data)
+    {
+        $this->results = $data;
+    }
+
+    public function fetch_object() {
+        if(empty($this->results['hits']['hits'])) return false;
+
+        $result = json_decode( json_encode( (object) ((array_shift($this->results['hits']['hits'] ))['_source']) ) );
+
+        return $result;
+    }
+
+    public function fetch_array() {
+        if(empty($this->results['hits']['hits'])) return false;
+
+        $result = array_shift($this->results['hits']['hits']);
+        return $result['_source'];
+    }
+    public function free_result() {
+        $this->results = null;
+    }
+}
 
 class ELKParser
 {
@@ -21,6 +50,7 @@ class ELKParser
     private $sorts=null;
     private $url = '';
     private $params=null;
+    private $results=null;
 
     static public $client=null;
 
@@ -49,12 +79,12 @@ class ELKParser
 
                 // $this->revokeAlias(); //TODO useless ?
 
-                $this->buildSimpleQuery();
+                if(!$this->runELKSQLQuery()) return false;
 
-                if(!$this->runELKQuery()) return false;
-
+                return true;
             }
 
+            return false;
         }
 
     }
@@ -64,7 +94,7 @@ class ELKParser
 
 	    if(empty($conf)) return true;
 
-	    if(in_array($this->tablename,['const','overwrite_trans'])) return true;
+	    if(in_array($this->tablename,['const','overwrite_trans','user_rights','usergroup_rights'])) return true;
 
 	    return false;
 
@@ -141,27 +171,54 @@ class ELKParser
     private function buildSimpleQuery() {
         $this->revokeAlias(true);
 	    $this->revokeFrom($this->tablename);
-
+        $this->revokeSelect();
+        //unset($this->parser->parsed['ORDER'], $this->parser->parsed['GROUP']);
 	    return $this->buildQuery();
     }
 
     private function runELKQuery() {
+        $query = $this->buildSimpleQuery();
+        exit($query);
+        $query = substr($this->buildSimpleQuery(), strpos($query,'WHERE'));
 
-        global $conf;
+        $esQuery = SqlElasticSearchQueryConverter::convert($query, 'field');
+        print_r($esQuery);
+        exit;
 
-        if(empty(self::$client)) {
+        $index = $this->parser->parsed['FROM'][0]['table'];
 
-            $builder = ClientBuilder::create()->setSSLVerification(false);
-            if (!empty($conf->global->ELK_HOSTS)) $builder->setHosts(explode(',', $conf->global->ELK_HOSTS));
+        $filter=array();
+        foreach($this->parser->parsed['WHERE'] as &$w) {
+            if($w['expr_type']=='colref') {
+                $colname = $w['base_expr'];
+                unset($type, $values);
+            }
+            elseif($w['expr_type']=='operator') {
+                if( $w['base_expr'] == 'IN') $type='terms';
+                else if( $w['base_expr'] == '=') $type='terms';
+                if( $w['base_expr'] == 'LIKE') $type='match';
+            }
+            elseif($w['expr_type']=='in-list') {
+                $values = array();
+                foreach($w['sub_tree'] as &$row) {
+                    $values[]=$row['base_expr'];
+                }
+            }
+            elseif($w['expr_type']=='const') {
+                $values = array();
+                $values[] = substr($w['base_expr'],1,-1);
+            }
 
-            self::$client = $builder->build();
+            if(isset($colname, $type, $values)) {
+                if(empty($filter[$type]))$filter[$type]=array();
+                $filter[$type][$colname] = $values;
+            }
         }
 
         $curl = curl_init();
 //if(strpos($this->query_builed,'user'))echo $this->query_builed;
         $params = array(
-            'query'=>$this->query_builed
-            ,'fetch_size'=>5
+            'query'=>array('bool'=>array('filter'=>$filter))
         );
         $auth_header = '';
         $content_header = "Content-Type:application/json";
@@ -169,7 +226,7 @@ class ELKParser
 
         curl_setopt_array($curl, array(
             CURLOPT_HTTPHEADER=> array($auth_header,$content_header),
-            CURLOPT_URL =>  (empty($conf->global->ELK_HOSTS) ? 'http://172.17.0.1:9200' : $conf->global->ELK_HOSTS) .'/_xpack/sql?format=json',
+            CURLOPT_URL =>  (empty($conf->global->ELK_HOSTS) ? 'http://172.17.0.1:9200' : $conf->global->ELK_HOSTS) .'/'.$index.'/_search',
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING => "",
             CURLOPT_MAXREDIRS => 10,
@@ -189,12 +246,90 @@ class ELKParser
         } else {
             $data = json_decode($response);
             if(!empty($data->error)) {
+                print_r($params);
+                var_dump(json_encode( $params ), $data);
+                exit;
                 return false;
             }
             else {
-                var_dump($data);
+             //   var_dump($params,$data);
+                //TODO return values
+                return false;
             }
         }
+    }
+
+    private function runELKSQLQuery() {
+
+        global $conf;
+
+        $this->buildSimpleQuery();
+/*
+        if(empty(self::$client)) {
+
+            $builder = ClientBuilder::create()->setSSLVerification(false);
+            if (!empty($conf->global->ELK_HOSTS)) $builder->setHosts(explode(',', $conf->global->ELK_HOSTS));
+
+            self::$client = $builder->build();
+        }
+*/
+        $curl = curl_init();
+//if(strpos($this->query_builed,'user'))echo $this->query_builed;
+        $params = array(
+
+        );
+        $auth_header = '';
+        $content_header = "Content-Type:application/json";
+
+        $url = (empty($conf->global->ELK_HOSTS) ? 'http://172.17.0.1:9200' : $conf->global->ELK_HOSTS) .'/_sql/?sql='.urlencode($this->query_builed);
+
+        curl_setopt_array($curl, array(
+            CURLOPT_HTTPHEADER=> array($auth_header,$content_header),
+            CURLOPT_URL =>  $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => "",
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 30,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => "POST",
+            CURLOPT_POSTFIELDS => json_encode( $params ),
+        ));
+
+        $response = curl_exec($curl);
+        $err = curl_error($curl);
+
+        curl_close($curl);
+
+        if ($err) {
+            return false;
+        } else {
+            $data = json_decode($response, true);
+
+            if(!empty($data->error) || empty($data->hits->hits)) {
+
+                return false;
+            }
+            else {
+
+                $this->results = new ELKResult($data) ;
+
+                return true;
+            }
+        }
+
+    }
+
+    private function revokeSelect() {
+        $this->parser->parsed['SELECT']=array(
+            array(
+                'expr_type' => 'colref',
+                'alias' => null,
+                'base_expr' => '*',
+                'sub_tree' => null,
+                'delim' => null,
+
+            )
+        );
 
     }
 
@@ -216,8 +351,11 @@ class ELKParser
 	    if(($row['expr_type']=='colref' || $row['expr_type']=='table') /*&& $row['join_type']!='CROSS'*/) {
 
 	        if($removeAlias) {
-
+                if (!empty($row['no_quotes']['parts']) && count($row['no_quotes']['parts']) == 2) {
+                    $row['base_expr'] = $row['no_quotes']['parts'][1];
+                }
 	            unset($row['alias'],$row['no_quotes']);
+
 
             }
             else{
@@ -254,44 +392,26 @@ class ELKParser
             if($removeAlias) unset($rowFrom['alias']['name'] );
             else {
                 //if(empty($rowFrom['alias']['name'])) $rowFrom['alias']['name'] = $table;
-                @            $this->TAlias[$rowFrom['alias']['name']] = $alias;
+                @$this->TAlias[$rowFrom['alias']['name']] = $alias;
                 $rowFrom['alias']['name'] = $alias;
 
             }
         }
 
-        foreach($this->parser->parsed['FROM'] as &$rowFrom) {
-            $this->changeAlias($rowFrom, $removeAlias);
-            if(!empty($rowFrom['ref_type']) && $rowFrom['ref_type'] == 'ON') {
-                foreach ($rowFrom['ref_clause'] as &$clause) {
-                    $this->changeAlias($clause, $removeAlias);
+        $types = array('FROM','SELECT','WHERE','ORDER','GROUP');
+        foreach($types as $type) {
+            if(!empty($this->parser->parsed[$type])) {
+                foreach ($this->parser->parsed[$type] as &$row) {
+                    $this->changeAlias($row, $removeAlias);
+                    if (!empty($row['ref_type']) && $row['ref_type'] == 'ON' && !empty($row['ref_clause'])) {
+                        foreach ($row['ref_clause'] as &$clause) {
+                            $this->changeAlias($clause, $removeAlias);
+                        }
+                    }
                 }
-
             }
-
         }
 
-        if(!empty($this->parser->parsed['SELECT'])) {
-            foreach ($this->parser->parsed['SELECT'] as &$rowSelect) {
-                $this->changeAlias($rowSelect, $removeAlias);
-
-            }
-        }
-        if(!empty($this->parser->parsed['WHERE'])) {
-            foreach ($this->parser->parsed['WHERE'] as &$rowWhere) {
-                $this->changeAlias($rowWhere, $removeAlias);
-            }
-        }
-        if(!empty($this->parser->parsed['ORDER'])) {
-            foreach ($this->parser->parsed['ORDER'] as &$rowOrder) {
-                $this->changeAlias($rowOrder, $removeAlias);
-            }
-        }
-        if(!empty($this->parser->parsed['GROUP'])) {
-            foreach ($this->parser->parsed['GROUP'] as &$rowOrder) {
-                $this->changeAlias($rowOrder, $removeAlias);
-            }
-        }
     }
 
     public function ifQuery() {
@@ -301,7 +421,7 @@ class ELKParser
 
     public function getResult() {
 
-	    return array();
+	    return $this->results;
 
     }
 
@@ -316,6 +436,9 @@ class ELKParser
             self::$client = $builder->build();
         }
 
+        self::eraseNonNeededData($object);
+        self::completeNeededData($object);
+
         $params = [
             'index' => $object->table_element,
             'type' => $object->element,
@@ -327,5 +450,17 @@ class ELKParser
 
     }
 
+    private static function completeNeededData(&$object) {
+	    //TODO complete date in an object to answer all request
+    }
+
+    private static function eraseNonNeededData(&$object) {
+        $removes = ['db', 'fields','default_range','oldcopy','restrictiononfksoc'];
+
+        foreach($object as $k=>&$v) {
+            if(in_array($k, $removes)) unset($object->{$k});
+            else if(is_object($v)) self::eraseNonNeededData($v);
+        }
+    }
 
 }

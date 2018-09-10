@@ -270,6 +270,7 @@ class DoliDBElk extends \DoliDB
         else {
             $elk = new ELKParser();
             if ($elk->getResultFromElk($query)) {
+                $ret = $elk->getResult();
 
             } else {
                 $ret = $this->db->query($query);
