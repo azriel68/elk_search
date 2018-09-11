@@ -90,6 +90,7 @@ class modELK extends DolibarrModules
 		//                        );
 		$this->module_parts = array(
 			'triggers'=>1
+            ,'hooks'=>array('globalcard','searchform')
 		);
 
 		// Data directories to create when module is enabled.
@@ -113,7 +114,15 @@ class modELK extends DolibarrModules
 		// Example: $this->const=array(0=>array('MYMODULE_MYNEWCONST1','chaine','myvalue','This is a constant to add',1),
 		//                             1=>array('MYMODULE_MYNEWCONST2','chaine','myvalue','This is another constant to add',0, 'current', 1)
 		// );
-		$this->const = array();
+		$this->const = array(
+            'MAIN_DISABLEPROFIDRULES','',1,'',1,'allentities',
+            'MAIN_DISABLE_FULL_SCANLIST','',1,'',1,'allentities',
+            'MAIN_DISABLE_CANVAS','',1,'',1,'allentities',
+            'MAIN_DIRECT_STATUS_UPDATE','',1,'',1,'allentities',
+            'COMPANY_USE_SEARCH_TO_SELECT','',3,'',1,'allentities',
+            'SOCIETE_DISABLE_SUBSIDIARIES','',3,'',1,'allentities',
+
+        );
 
 		// Array to add new pages in new tabs
 		// Example: $this->tabs = array('objecttype:+tabname1:Title1:elk@elk:$user->rights->elk->read:/elk/mynewtab1.php?id=__ID__',  	// To add a new tab identified by code tabname1

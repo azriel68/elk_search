@@ -1,11 +1,5 @@
 <?php
 
-
-require __DIR__.'/../../vendor/autoload.php';
-
-use Elasticsearch\ClientBuilder;
-
-
 /**
  * Trigger class
  */
@@ -94,7 +88,12 @@ class InterfaceELKtrigger
             return 0;
         }
 
-        if(preg_match('/UPDATE/',$action) || preg_match('/INSERT/',$action) || preg_match('/MODIFY/',$action) ) {
+        if(preg_match('/UPDATE/',$action)
+            || preg_match('/INSERT/',$action)
+            || preg_match('/MODIFY/',$action)
+            || preg_match('/CREATE/',$action)
+        ) {
+            dol_include_once('/elk/class/elk.class.php');
             ELKParser::storeObject($object);
         }
 

@@ -25,14 +25,15 @@ function elkAdminPrepareHead()
  * @param 	TELK	$object		Object company shown
  * @return 	array				Array of tabs
  */
-function elk_prepare_head(TELK $object)
+function elk_prepare_head($str)
 {
-    global $db, $langs, $conf, $user;
+    global $langs, $conf;
     $h = 0;
     $head = array();
-    $head[$h][0] = dol_buildpath('/elk/card.php', 1).'?id='.$object->getId();
-    $head[$h][1] = $langs->trans("ELKCard");
-    $head[$h][2] = 'card';
+
+    $head[$h][0] = dol_buildpath('/elk/search.php?keyword='.urlencode($str), 1);
+    $head[$h][1] = $langs->trans('ELKSearch');
+    $head[$h][2] = 'search';
     $h++;
 
     complete_head_from_modules($conf,$langs,$object,$head,$h,'elk');

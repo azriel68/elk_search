@@ -304,7 +304,7 @@ class ELKParser
             return false;
         } else {
             $data = json_decode($response, true);
-
+//var_dump($data,$this->query_builed);
             if(!empty($data->error) || empty($data->hits->hits)) {
 
                 return false;
@@ -425,7 +425,7 @@ class ELKParser
 
     }
 
-    public static function storeObject(&$object) {
+    public static function fetch(&$object, $id) {
         global $conf;
 
         if(empty(self::$client)) {
@@ -436,31 +436,103 @@ class ELKParser
             self::$client = $builder->build();
         }
 
-        self::eraseNonNeededData($object);
-        self::completeNeededData($object);
+        $params = [
+            'index'=>$object->table_element
+            ,'type'=>$object->element
+            ,'id'=>$id
+        ];
+
+        try {
+            $response = self::$client->get($params);
+        }
+        catch(Exception $e) {
+           null;
+        }
+
+        if(empty($response['_source'])) return false;
+        else return $response['_source'];
+
+    }
+
+    public static function objectToObject(&$instance, $className) {
+
+	    $o=new $className($instance->db);
+	    foreach($instance as $k=>$v) {
+	        $o->{$k} = $v;
+        }
+
+        return $o;
+
+	    /*return unserialize(sprintf(
+            'O:%d:"%s"%s',
+            strlen($className),
+            $className,
+            strstr(strstr(serialize($instance), '"'), ':')
+        ));*/
+    }
+
+    public static function setObjectByStorage(&$object, &$row) {
+
+        foreach($row as $k=>$v) {
+            if((is_object($object) && property_exists($object,$k))
+                || (is_array($object) && array_key_exists($k, $object))) {
+
+                if(is_object($object->{$k}) || is_array($object->{$k})) self::setObjectByStorage($object->{$k}, $row[$k]);
+                else if(is_object($object)) {
+                    $object->{$k} = $row[$k];
+                }
+                else if(is_array($object)) {
+                    $object[$k] = $row[$k];
+                }
+            }
+        }
+
+
+    }
+
+
+
+    public static function storeObject($object) {
+        global $conf;
+
+        if(empty(self::$client)) {
+
+            $builder = ClientBuilder::create()->setSSLVerification(false);
+            if (!empty($conf->global->ELK_HOSTS)) $builder->setHosts(explode(',', $conf->global->ELK_HOSTS));
+
+            self::$client = $builder->build();
+        }
+
+        $data = self::cleanData($object);
+        $data = self::completeNeededData($data);
 
         $params = [
             'index' => $object->table_element,
             'type' => $object->element,
             'id' => $object->id,
-            'body' => (array) $object
+            'body' => $data
         ];
 
         $response = self::$client->index($params); // TODO check response
 
     }
 
-    private static function completeNeededData(&$object) {
+    private static function completeNeededData($data) {
 	    //TODO complete date in an object to answer all request
+
+        return $data;
     }
 
-    private static function eraseNonNeededData(&$object) {
-        $removes = ['db', 'fields','default_range','oldcopy','restrictiononfksoc'];
-
+    private static function cleanData($object) {
+        $removes = ['db', 'fields','default_range','oldcopy','restrictiononfksoc','childtables'];
+        $data = array();
         foreach($object as $k=>&$v) {
-            if(in_array($k, $removes)) unset($object->{$k});
-            else if(is_object($v)) self::eraseNonNeededData($v);
+            if(in_array($k, $removes)) null;
+            else if(is_object($v)) $data[$k] = self::cleanData($v);
+            else $data[$k] = $v;
         }
+
+        return $data;
     }
 
 }
