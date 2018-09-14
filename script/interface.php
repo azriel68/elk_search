@@ -72,9 +72,9 @@ function _search(&$client, $type, $keyword, $asArray=false) {
 		$objname = 'Societe';
 		$complete_label = false;
 	}
-	elseif($type == 'projet') {
-		$index = 'projet';
-		$objname = 'Project';
+	elseif($type == 'contrat') {
+		$index = 'contrat';
+		$objname = 'Contrat';
 	}
 	elseif($type == 'task') {
 		$index = 'projet_task';
@@ -120,7 +120,7 @@ function _search(&$client, $type, $keyword, $asArray=false) {
         exit(''); // on ne rend aucun résultat
     }
 
-
+//var_dump($results,$params);
 
 	$libelle = ucfirst($objname);
 	if($objname == 'CommandeFournisseur') $libelle = 'SupplierOrder';

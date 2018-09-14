@@ -92,6 +92,7 @@ class InterfaceELKtrigger
             || preg_match('/INSERT/',$action)
             || preg_match('/MODIFY/',$action)
             || preg_match('/CREATE/',$action)
+            || preg_match('/VALIDATE/',$action)
         ) {
             dol_include_once('/elk/class/elk.class.php');
             ELKParser::storeObject($object);

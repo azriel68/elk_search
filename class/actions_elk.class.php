@@ -49,7 +49,8 @@ class ActionsELK
 	    dol_include_once('/elk/class/elk.class.php');
         $classname = get_class($object);
 
-	    if(empty($object->element)) return 0;
+        if(GETPOST('legacyObject') || preg_match('/edit/',$action)) return 0;
+	    else if(empty($object->element)) return 0;
 	    else if($classname == 'Societe') {
             dol_include_once('/elk/class/societe.class.php');
             $object = ELKParser::objectToObject($object,'ELKSociete');
@@ -61,6 +62,10 @@ class ActionsELK
         else if($classname == 'Contact') {
             dol_include_once('/elk/class/contact.class.php');
             $object = ELKParser::objectToObject($object,'ELKContact');
+        }
+        else if($classname == 'Contrat') {
+            dol_include_once('/elk/class/contrat.class.php');
+            $object = ELKParser::objectToObject($object,'ELKContrat');
         }
         else {
             //exit(get_class($object));

@@ -177,7 +177,7 @@ class ELKParser
     }
 
     private function runELKQuery() {
-        $query = $this->buildSimpleQuery();
+        /*$query = $this->buildSimpleQuery();
         exit($query);
         $query = substr($this->buildSimpleQuery(), strpos($query,'WHERE'));
 
@@ -214,7 +214,7 @@ class ELKParser
                 $filter[$type][$colname] = $values;
             }
         }
-
+*/
         $curl = curl_init();
 //if(strpos($this->query_builed,'user'))echo $this->query_builed;
         $params = array(
@@ -520,11 +520,13 @@ class ELKParser
     private static function completeNeededData($data) {
 	    //TODO complete date in an object to answer all request
 
+        if(!empty($data['newref']))$data['ref'] = $data['newref'];
+
         return $data;
     }
 
     private static function cleanData($object) {
-        $removes = ['db', 'fields','default_range','oldcopy','restrictiononfksoc','childtables'];
+        $removes = ['db', 'fields','default_range','oldcopy','restrictiononfksoc','childtables','fieldsforcombobox','childtablesoncascade','linked_objects'];
         $data = array();
         foreach($object as $k=>&$v) {
             if(in_array($k, $removes)) null;
