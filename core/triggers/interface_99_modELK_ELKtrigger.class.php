@@ -93,7 +93,13 @@ class InterfaceELKtrigger
             || preg_match('/MODIFY/',$action)
             || preg_match('/CREATE/',$action)
             || preg_match('/VALIDATE/',$action)
+
         ) {
+
+            if(property_exists($object,'lines') && empty($object->lines) && method_exists($object,'fetch_lines')) {
+                $object->fetch_lines();
+            }
+            
             dol_include_once('/elk/class/elk.class.php');
             ELKParser::storeObject($object);
         }

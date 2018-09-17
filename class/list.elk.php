@@ -944,9 +944,7 @@ class ListELK
         $TFieldParsed[] = $row;
     }
     /**
-     * @param string $sql       sql
-     * @param string $TParam    TParam
-     * @return string
+     * @return null
      */
     private function setLimit()
     {
@@ -962,7 +960,7 @@ class ListELK
      * @param string $TParam    TParam
      * @param string $sql       sql
      */
-    private function run(&$THeader, &$TField, &$TParam, $sql)
+    private function run(&$THeader, &$TField, $sql)
     {
         $this->setLimit();
 

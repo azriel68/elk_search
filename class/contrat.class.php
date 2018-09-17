@@ -14,6 +14,7 @@ class ELKContrat extends contrat {
         else {
             ELKParser::setObjectByStorage($this,$obj);
             $this->loaded_by_elk = 1;
+
             return 1;
         }
 
