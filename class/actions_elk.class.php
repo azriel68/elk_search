@@ -49,7 +49,7 @@ class ActionsELK
 	    dol_include_once('/elk/class/elk.class.php');
         $classname = get_class($object);
 
-        if(GETPOST('legacyObject') || preg_match('/edit/',$action)) return 0;
+        if(GETPOST('legacyObject') || preg_match('/edit/',$action) || preg_match('/confirm/',$action)) return 0;
 	    else if(empty($object->element)) return 0;
 	    else if($classname == 'Societe') {
             dol_include_once('/elk/class/societe.class.php');
