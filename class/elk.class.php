@@ -473,18 +473,22 @@ class ELKParser
 
     public static function setObjectByStorage(&$object, &$row) {
 
-        foreach($row as $k=>$v) {
-            if((is_object($object) && property_exists($object,$k))
-                || (is_array($object) && array_key_exists($k, $object))) {
+        if(!empty($row)) {
+            foreach($row as $k=>$v) {
 
-                if(is_object($object->{$k}) || is_array($object->{$k})) self::setObjectByStorage($object->{$k}, $row[$k]);
-                else if(is_object($object)) {
-                    $object->{$k} = $row[$k];
+                if(is_object($object) && property_exists($object,$k)) {
+                    if(is_object($object->{$k}) || is_array($object->{$k})) self::setObjectByStorage($object->{$k}, $row[$k]);
+                    else $object->{$k} = $row[$k];
                 }
-                else if(is_array($object)) {
-                    $object[$k] = $row[$k];
+                else if (is_array($object) && array_key_exists($k, $object)) {
+                    if(is_object($object[$k]) || is_array($object[$k])) self::setObjectByStorage($object[$k], $row[$k]);
+                    else $object[$k] = $row[$k];
                 }
+                elseif (is_array($object)) $object[$k] = $row[$k];
+                else $object->{$k} = $row[$k];
+
             }
+
         }
 
 

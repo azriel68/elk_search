@@ -99,6 +99,9 @@ class InterfaceELKtrigger
             if(property_exists($object,'lines') && empty($object->lines) && method_exists($object,'fetch_lines')) {
                 $object->fetch_lines();
             }
+            if(property_exists($object,'array_options') && empty($object->array_options) && method_exists($object,'fetch_optionals')) {
+                $object->fetch_optionals();
+            }
 
             dol_include_once('/elk/class/elk.class.php');
             ELKParser::storeObject($object);
