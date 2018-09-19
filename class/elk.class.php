@@ -495,9 +495,12 @@ class ELKParser
     }
 
 
-
+    /**
+     * Store object into elastic index
+     * @param $object
+     */
     public static function storeObject($object) {
-        global $conf;
+        global $conf, $langs;
 
         if(empty(self::$client)) {
 
@@ -517,8 +520,14 @@ class ELKParser
             'body' => $data
         ];
 
-        $response = self::$client->index($params); // TODO check response
+        try{
+            $response = self::$client->index($params); // TODO check response
+        }
+        catch(Exception $e) {
+            setEventMessage($e->getMessage(),'errors');
+        }
 
+        if(empty($response->error)) setEventMessage($langs->trans('ObjectIndexed'));
     }
 
     private static function completeNeededData($data) {
