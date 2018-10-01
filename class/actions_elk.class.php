@@ -48,7 +48,7 @@ class ActionsELK
 
 	    dol_include_once('/elk/class/elk.class.php');
         $classname = get_class($object);
-
+//TODO PHP7, replace override message by runkit_method_redefine
         if(GETPOST('legacyObject') || preg_match('/edit/',$action) || preg_match('/confirm/',$action)) return 0;
 	    else if(empty($object->element)) return 0;
 	    else if($classname == 'Societe') {

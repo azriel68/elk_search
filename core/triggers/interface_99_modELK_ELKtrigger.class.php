@@ -85,11 +85,11 @@ class InterfaceELKtrigger
     {
         global $elk_indexed;
 
-        if ($action == 'USER_LOGIN' || empty($object->element) || empty($object->table_element) ) {
+        if ($action === 'USER_LOGIN' || empty($object->element) || empty($object->table_element) ) {
             return 0;
         }
 
-        if(empty($elk_indexed) &&
+        if( (!isset($elk_indexed) || $elk_indexed!=$object->id) &&
             (preg_match('/UPDATE/',$action)
                 || preg_match('/INSERT/',$action)
                 || preg_match('/MODIFY/',$action)
@@ -108,7 +108,7 @@ class InterfaceELKtrigger
             dol_include_once('/elk/class/elk.class.php');
             ELKParser::storeObject($object);
 
-            $elk_indexed = true;
+            $elk_indexed = $object->id;
         }
 
 
