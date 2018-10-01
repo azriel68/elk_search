@@ -34,6 +34,25 @@ class ActionsELK
 	{
 	}
 
+	public function setHtmlTitle($parameters, &$object, &$action, $hookmanager) {
+
+        //TODO PHP7, replace override message by runkit_method_redefine
+
+        dol_include_once('/elk/class/elk.class.php');
+
+        if(GETPOST('legacyObject') || preg_match('/edit/',$action) || preg_match('/confirm/',$action)) return 0;
+        else {
+
+            $object = ELKParser::objectRedefineFetch('Societe','/elk/class/societe.class.php');
+            $object = ELKParser::objectRedefineFetch('Client','/elk/class/societe.class.php');
+            $object = ELKParser::objectRedefineFetch('Contact','/elk/class/contact.class.php');
+            $object = ELKParser::objectRedefineFetch('Contrat','/elk/class/contrat.class.php');
+        }
+
+        return 0;
+
+    }
+
 	/**
 	 * Overloading the doActions function : replacing the parent's function with the one below
 	 *
@@ -48,7 +67,7 @@ class ActionsELK
 
 	    dol_include_once('/elk/class/elk.class.php');
         $classname = get_class($object);
-//TODO PHP7, replace override message by runkit_method_redefine
+
         if(GETPOST('legacyObject') || preg_match('/edit/',$action) || preg_match('/confirm/',$action)) return 0;
 	    else if(empty($object->element)) return 0;
 	    else if($classname == 'Societe') {

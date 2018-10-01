@@ -471,6 +471,14 @@ class ELKParser
         ));*/
     }
 
+    public static function objectRedefineFetch($classFrom, $classTo) {
+
+	    //runkit_method_redefine();
+        runkit_method_rename($classFrom, 'fetch', 'fetchLegacy');
+exit('la');
+
+    }
+
     public static function setObjectByStorage(&$object, &$row) {
 
         if(!empty($row)) {
