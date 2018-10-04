@@ -3,7 +3,7 @@
 class ELKSociete extends Societe {
 
     function fetch($rowid, $ref='', $ref_ext='', $ref_int='', $idprof1='',$idprof2='',$idprof3='',$idprof4='',$idprof5='',$idprof6='', $email='', $ref_alias='') {
-
+exit('la');
         $this->loaded_by_elk = 0;
 
         if(empty($rowid)) parent::fetch($rowid, $ref, $ref_ext, $ref_int, $idprof1,$idprof2,$idprof3,$idprof4,$idprof5,$idprof6, $email, $ref_alias);

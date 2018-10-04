@@ -11,6 +11,10 @@ class ComposerStaticInitb8134b8e81e83e96801d65de1c1b85c1
     );
 
     public static $prefixLengthsPsr4 = array (
+        'S' => 
+        array (
+            'SciActive\\' => 10,
+        ),
         'R' => 
         array (
             'React\\Promise\\' => 14,
@@ -31,6 +35,10 @@ class ComposerStaticInitb8134b8e81e83e96801d65de1c1b85c1
     );
 
     public static $prefixDirsPsr4 = array (
+        'SciActive\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/sciactive/hookphp/src',
+        ),
         'React\\Promise\\' => 
         array (
             0 => __DIR__ . '/..' . '/react/promise/src',
@@ -53,11 +61,22 @@ class ComposerStaticInitb8134b8e81e83e96801d65de1c1b85c1
         ),
     );
 
+    public static $prefixesPsr0 = array (
+        'S' => 
+        array (
+            'SciActive\\' => 
+            array (
+                0 => __DIR__ . '/..' . '/sciactive/hookphp/src',
+            ),
+        ),
+    );
+
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
             $loader->prefixLengthsPsr4 = ComposerStaticInitb8134b8e81e83e96801d65de1c1b85c1::$prefixLengthsPsr4;
             $loader->prefixDirsPsr4 = ComposerStaticInitb8134b8e81e83e96801d65de1c1b85c1::$prefixDirsPsr4;
+            $loader->prefixesPsr0 = ComposerStaticInitb8134b8e81e83e96801d65de1c1b85c1::$prefixesPsr0;
 
         }, null, ClassLoader::class);
     }

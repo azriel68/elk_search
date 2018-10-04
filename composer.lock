@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "7847edb7b2245d7c11d777f0d17b4114",
+    "content-hash": "ad9a8d75e9c76adac8e69515d1369a1d",
     "packages": [
         {
             "name": "elasticsearch/elasticsearch",
@@ -256,6 +256,56 @@
                 "promises"
             ],
             "time": "2018-06-13T15:59:06+00:00"
+        },
+        {
+            "name": "sciactive/hookphp",
+            "version": "2.0.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/sciactive/hookphp.git",
+                "reference": "adde48e776bd98d01a639c9bccff0fbca0cea6d6"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/sciactive/hookphp/zipball/adde48e776bd98d01a639c9bccff0fbca0cea6d6",
+                "reference": "adde48e776bd98d01a639c9bccff0fbca0cea6d6",
+                "shasum": ""
+            },
+            "require": {
+                "php": "~7.0"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^6.1"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-0": {
+                    "SciActive\\": "src/"
+                },
+                "psr-4": {
+                    "SciActive\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "Apache-2.0"
+            ],
+            "authors": [
+                {
+                    "name": "Hunter Perrin",
+                    "email": "hunter@sciactive.com",
+                    "homepage": "https://github.com/hperrin",
+                    "role": "Developer"
+                }
+            ],
+            "description": "Method hooking in PHP.",
+            "homepage": "http://hookphp.org/",
+            "keywords": [
+                "HOOK",
+                "interception",
+                "method hooking"
+            ],
+            "time": "2017-10-24T00:00:00+00:00"
         }
     ],
     "packages-dev": [],

@@ -456,12 +456,18 @@ class ELKParser
 
     public static function objectToObject(&$instance, $className) {
 
-	    $o=new $className($instance->db);
+	    $new = new $className($instance->db);
+        $method = new ReflectionMethod($new, 'fetch');
+        $closure = $method->getClosure($new);
+
+        $instance->fetch = function () { exit('la'); };
+        $instance->fetch(1);
+        /*$o=new $className($instance->db);
 	    foreach($instance as $k=>$v) {
 	        $o->{$k} = $v;
         }
+*/
 
-        return $o;
 
 	    /*return unserialize(sprintf(
             'O:%d:"%s"%s',

@@ -34,6 +34,11 @@ class ActionsELK
 	{
 	}
 
+    function setT($parameters, &$object, &$action, $hookmanager) {
+
+    }
+
+
 	/**
 	 * Overloading the doActions function : replacing the parent's function with the one below
 	 *
@@ -53,7 +58,7 @@ class ActionsELK
 	    else if(empty($object->element)) return 0;
 	    else if($classname == 'Societe') {
             dol_include_once('/elk/class/societe.class.php');
-            $object = ELKParser::objectToObject($object,'ELKSociete');
+            ELKParser::objectToObject($object,'ELKSociete');
         }
         else if($classname == 'Client') {
             dol_include_once('/elk/class/societe.class.php');
