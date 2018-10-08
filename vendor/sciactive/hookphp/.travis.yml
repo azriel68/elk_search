@@ -1,0 +1,9 @@
+language: php
+
+php:
+  - 7.1
+  # - hhvm
+
+install: composer install --no-interaction
+
+script: ./testing/run

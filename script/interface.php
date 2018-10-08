@@ -42,7 +42,10 @@
 		    $TResult=array();
 		    foreach($TObjectType as $type) {
 
-		        $TResult[$langs->transnoentities(ucfirst($type))] = _search($client,$type, GETPOST('keyword'), true);
+		        $result = _search($client,$type, GETPOST('keyword'), true);
+				if(false !== $result) {
+					$TResult[$langs->transnoentities(ucfirst($type))] = $result;
+				}
 
 		    }
 
@@ -117,7 +120,7 @@ function _search(&$client, $type, $keyword, $asArray=false) {
 
     }
     catch(Exception $e) {
-        exit(''); // on ne rend aucun résultat
+        return false; // on ne rend aucun résultat
     }
 
 //var_dump($results,$params);

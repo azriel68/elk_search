@@ -1,0 +1,44 @@
+{
+    "name": "sciactive/hookphp",
+    "description": "Method hooking in PHP.",
+    "version": "2.0.2",
+    "time": "2017-10-24",
+    "type": "library",
+    "keywords": [
+        "method hooking",
+        "hook",
+        "interception"
+    ],
+    "homepage": "http://hookphp.org/",
+    "license": "Apache-2.0",
+    "authors": [
+        {
+            "name": "Hunter Perrin",
+            "email": "hunter@sciactive.com",
+            "homepage": "https://github.com/hperrin",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+    	"php": "~7.0"
+    },
+    "require-dev": {
+    	"phpunit/phpunit": "^6.1"
+    },
+    "support": {
+        "issues": "https://github.com/sciactive/hookphp/issues",
+        "wiki": "https://github.com/sciactive/hookphp/wiki",
+        "source": "https://github.com/sciactive/hookphp"
+    },
+    "archive": {
+        "exclude": ["testing"]
+    },
+    "autoload": {
+        "psr-0": {
+            "SciActive\\": "src/"
+        },
+        "psr-4": {
+            "SciActive\\": "src/"
+        }
+    }
+}
